@@ -60,9 +60,8 @@ def parseConfigXMLFile():
     root = ET.fromstring('<Data></Data>') 
     return GlobalConfig
 
-def showDialog():
+def showDialog(config):
     """create the dialog and call the main loop"""
-    config = parseConfigXMLFile()
     buttonwidth = calculateButtonWidth(config['Commands'])
     root = Tkinter.Tk()
     root.title(config['TitleString'])
@@ -75,4 +74,5 @@ def showDialog():
     win.mainloop()
 
 if __name__ == '__main__':    
+    config = parseConfigXMLFile()
     showDialog()
