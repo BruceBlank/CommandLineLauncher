@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<CLLConfig>
+	<GeneralConfiguration></GeneralConfiguration>
+	<SpecialConfigurations>
+		<!-- Dont change this entry, its the default message -->
+		<CommandLineLauncher>
+			<Title>Command Line Launcher</Title>
+			<LabelText>Please edit the file ~/.commandlinelauncher and rename the script, to match a certain configuration</LabelText>
+			<GridWidth>3</GridWidth>
+		</CommandLineLauncher>
+		<!-- This is the configuration for the Ultra Remote Control -->
+		<UltraRemote>
+			<Title>Ultra Remote</Title>
+			<LabelText>What do you want to do?</LabelText>
+			<GridWidth>3</GridWidth>
+		</UltraRemote>
+		<!-- This is a configuration for testing -->
+		<TestScript>
+			<Title>Test Configuration</Title>
+			<LabelText>This is a test configuration for CommandLineLauncher</LabelText>
+			<GridWidth>3</GridWidth>
+		</TestScript>
+	</SpecialConfigurations>
+</CLLConfig>
