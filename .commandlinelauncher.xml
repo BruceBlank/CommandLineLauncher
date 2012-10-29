@@ -3,7 +3,7 @@
 	<GeneralConfiguration></GeneralConfiguration>
 	<SpecialConfigurations>
 		<!-- This is the configuration for the Ultra Remote Control -->
-		<UltraRemote>
+		<Configuration name ="UltraRemote">
 			<Title>Ultra Remote</Title>
 			<LabelText>What do you want to do?</LabelText>
 			<GridWidth>3</GridWidth>
@@ -12,23 +12,24 @@
 				<Command text="Shutdown"><![CDATA[ssh ultra@ultra sudo shutdown -h now]]></Command>
 				<Command text="Restart VDR"><![CDATA[ssh ultra@ultra sudo /etc/init.d/vdr restart]]></Command>
 				<Command text="Bark"><![CDATA[play /usr/share/sounds/gnome/default/alerts/bark.ogg]]></Command>	
+				<Command text="Bark"><![CDATA[play /usr/share/sounds/gnome/default/alerts/bark.ogg]]></Command>	
 			</CommandList>
-		</UltraRemote>
+		</Configuration>
 		<!-- This is a configuration for BARKing -->
-		<BARKScript>
+		<Configuration name="TestLauncher">
 			<Title>BARK Configuration</Title>
-			<LabelText>This is a BARK configuration for CommandLineLauncher</LabelText>
+			<LabelText>This is a Test configuration for CommandLineLauncher</LabelText>
 			<GridWidth>3</GridWidth>
 			<CommandList>
-				<Command text="BARK1"><![CDATA[play /usr/share/sounds/gnome/default/alerts/bark.ogg]]></Command>	
-				<Command text="BARK2"><![CDATA[play /usr/share/sounds/gnome/default/alerts/bark.ogg]]></Command>	
-				<Command text="BARK3"><![CDATA[play /usr/share/sounds/gnome/default/alerts/bark.ogg]]></Command>	
-				<Command text="BARK4"><![CDATA[play /usr/share/sounds/gnome/default/alerts/bark.ogg]]></Command>	
-				<Command text="BARK5"><![CDATA[play /usr/share/sounds/gnome/default/alerts/bark.ogg]]></Command>	
-				<Command text="BARK6"><![CDATA[play /usr/share/sounds/gnome/default/alerts/bark.ogg]]></Command>	
-				<Command text="BARK7"><![CDATA[play /usr/share/sounds/gnome/default/alerts/bark.ogg]]></Command>	
-				<Command text="BARK8"><![CDATA[play /usr/share/sounds/gnome/default/alerts/bark.ogg]]></Command>	
+				<Command text="Bark1"><![CDATA[play /usr/share/sounds/gnome/default/alerts/bark.ogg]]></Command>	
+				<Command text="Drip1"><![CDATA[play /usr/share/sounds/gnome/default/alerts/drip.ogg]]></Command>	
+				<Command text="Glass1"><![CDATA[play /usr/share/sounds/gnome/default/alerts/glass.ogg]]></Command>	
+				<Command text="Sonar1"><![CDATA[play /usr/share/sounds/gnome/default/alerts/sonar.ogg]]></Command>	
+				<Command text="Bark2"><![CDATA[play /usr/share/sounds/gnome/default/alerts/bark.ogg]]></Command>	
+				<Command text="Drip2"><![CDATA[play /usr/share/sounds/gnome/default/alerts/drip.ogg]]></Command>	
+				<Command text="Glass2"><![CDATA[play /usr/share/sounds/gnome/default/alerts/glass.ogg]]></Command>	
+				<Command text="Sonar2"><![CDATA[play /usr/share/sounds/gnome/default/alerts/sonar.ogg]]></Command>	
 			</CommandList>
-		</BARKScript>
+		</Configuration>
 	</SpecialConfigurations>
 </CLLConfig>

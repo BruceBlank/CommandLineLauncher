@@ -7,37 +7,24 @@ import xml.etree.ElementTree as ET
 #TODO: add a text box instead of a label for the LabelString (centered, multiline text)
 #TODO: add a text box with scrollbars for output and error messages of system command (add a minimum text box size)
 #TODO: add command line arguments to Python script: Which configuration to parse
-#TODO: parse XML-file: Configuration according to command line or Python-script-name
 
 
 # the name of the configuration file in users home directory
-ConfigFileName = '.commandlinelauncher.xml'
+ConfigFileName = os.path.expanduser('~') + '/.commandlinelauncher.xml'
+
+# the default configuration is empty
+#TODO: Output: Maybe an error in configuration file syntax? 
+DefaultConfig = {
+                 'TitleString' : 'Command Line Launcher' ,
+                 'LabelString' : "Please edit the file %s and rename the script, to match a certain configuration" % ConfigFileName,
+                 'Commands'    : [] ,
+                 'GridWidth' : 1
+} 
 
 class CommandDescription:
     def __init__(self, text, command):
         self.text = text
         self.command = command
-
-# this can be changed:
-GlobalConfig = {
-          'TitleString' : 'Ultra Remote Control' ,
-          'LabelString' : 'What do you want to do?',
-          'Commands'    : [
-                           CommandDescription('Wake Up', 'sudo etherwake 00:1C:85:40:24:E3') ,
-                           CommandDescription('Shutdown', 'ssh ultra@ultra sudo shutdown -h now') ,
-                           CommandDescription('Restart VDR', 'ssh ultra@ultra sudo /etc/init.d/vdr restart') ,
-                           CommandDescription('Bark', 'play /usr/share/sounds/gnome/default/alerts/bark.ogg') ,
-                           ] ,
-          'GridWidth' : 3
-}
-
-# the default configuration is empty
-DefaultConfig = {
-                 'TitleString' : 'Command Line Launcher' ,
-                 'LabelString' : 'Please edit the file ~/.commandlinelauncher and rename the script, to match a certain configuration',
-                 'Commands'    : [] ,
-                 'GridWidth' : 1
-} 
 
 def exitProgram(status):
     """exit this Python script"""    
@@ -48,8 +35,9 @@ def addButtons(win, config, buttonwidth):
     col = 0
     row = 1
     for com in config['Commands']:
-        syscom = (lambda: os.system(com.command))
-        Tkinter.Button(win, text=com.text, command=syscom, width=buttonwidth).grid(row=row, column=col, padx=3, pady=3)
+        #TODO: using bound methods for callback!!!
+        button = Tkinter.Button(win, text=com.text, command=(lambda: os.system(com.command)), width=buttonwidth)
+        button.grid(row=row, column=col, padx=3, pady=3)
         col += 1
         if(col==config['GridWidth']):
             col = 0
@@ -64,12 +52,43 @@ def calculateButtonWidth(commands):
             textlen = len(com.text)
     return textlen
 
-def parseConfigXMLFile():
-    """Really Read and parse config File ~/.commandlinelauncher.xml with Commands-structure"""
-    # TODO: Really Read and parse XML-File with Commands-structure
-    root = ET.fromstring('<Data></Data>') 
-    #return DefaultConfig
-    return GlobalConfig
+def parseConfigXMLFile(name):
+    """
+    Read and parse config File ~/.commandlinelauncher.xml with Commands-structure
+    return read config or DefaultConfig on error
+    """
+    config = {}
+    try:
+        tree = ET.parse(ConfigFileName)
+        root = tree.getroot()
+        # at the moment, no general configuration items defined
+        # find first matching configuration within SpecialConfiguration tag
+        matchingConfig = None
+        for c in root.findall("./SpecialConfigurations/Configuration"):
+            if(c.attrib['name'] == name):
+                matchingConfig=c
+                break
+        if(matchingConfig is not None):
+            # matching config found, set options accordingly
+            config['TitleString'] = matchingConfig.find('Title').text
+            config['LabelString'] = matchingConfig.find('LabelText').text
+            config['GridWidth'] = int(matchingConfig.find('GridWidth').text)
+            comLst = []
+            for c in matchingConfig.findall("./CommandList/Command"):
+                comLst.append(CommandDescription(c.attrib['text'], c.text))
+            config['Commands'] = comLst
+    except:
+        config = {}
+    # return read config or DefaultConfig on error
+    if config:
+        return config
+    else:
+        return DefaultConfig
+
+def determineConfigName():
+    #TODO: really determine active configuration name according to file name or command line argument
+    #return 'UltraRemote'
+    return 'TestLauncher'
 
 def showDialog(config):
     """create the dialog and call the main loop"""
@@ -94,4 +113,6 @@ def showDialog(config):
     win.mainloop()
 
 if __name__ == '__main__':    
-    showDialog(parseConfigXMLFile())
+    configName = determineConfigName()
+    config = parseConfigXMLFile(configName)
+    showDialog(config)
