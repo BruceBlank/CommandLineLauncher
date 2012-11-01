@@ -7,6 +7,7 @@ import xml.etree.ElementTree as ET
 #TODO: add a text box instead of a label for the LabelString (centered, multiline text)
 #TODO: add a text box with scrollbars for output and error messages of system command (add a minimum text box size)
 #TODO: add command line arguments to Python script: Which configuration to parse
+#TODO: write a config file if not found and error message, if config file cannot be written
 
 
 # the name of the configuration file in users home directory
@@ -35,8 +36,7 @@ def addButtons(win, config, buttonwidth):
     col = 0
     row = 1
     for com in config['Commands']:
-        #TODO: using bound methods for callback!!!
-        button = Tkinter.Button(win, text=com.text, command=(lambda: os.system(com.command)), width=buttonwidth)
+        button = Tkinter.Button(win, text=com.text, command=(lambda c=com.command: os.system(c)), width=buttonwidth)
         button.grid(row=row, column=col, padx=3, pady=3)
         col += 1
         if(col==config['GridWidth']):
