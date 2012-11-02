@@ -1,26 +1,55 @@
 #!/usr/bin/python
 
+"""
+This script shows a dialog to start shell commands. 
+The definition of the dialog is written in a configuration
+file ~/.CommandLineLauncher in the users home directory. 
+The configuration to choose will be determined by script
+file name or the first command line argument. 
+So, you can use the same python script with different 
+soft-links to it.   
+"""
+
 import os
+import sys
 import Tkinter
+import tkMessageBox
 import xml.etree.ElementTree as ET
+import re
 
-#TODO: add a text box instead of a label for the LabelString (centered, multiline text)
 #TODO: add a text box with scrollbars for output and error messages of system command (add a minimum text box size)
-#TODO: add command line arguments to Python script: Which configuration to parse
-#TODO: write a config file if not found and error message, if config file cannot be written
-
+#TODO: add an option in XML config file to show or not show the output and error messages
 
 # the name of the configuration file in users home directory
 ConfigFileName = os.path.expanduser('~') + '/.commandlinelauncher.xml'
 
 # the default configuration is empty
-#TODO: Output: Maybe an error in configuration file syntax? 
 DefaultConfig = {
                  'TitleString' : 'Command Line Launcher' ,
                  'LabelString' : "Please edit the file %s and rename the script, to match a certain configuration" % ConfigFileName,
                  'Commands'    : [] ,
                  'GridWidth' : 1
 } 
+
+# contents of the config file. Will be written, if no config file can be found
+ConfigFileDefaultContents = """<?xml version="1.0" encoding="UTF-8" ?>
+<CLLConfig>
+    <GeneralConfiguration></GeneralConfiguration>
+    <SpecialConfigurations>
+        <!-- This is the default configuration. Please adapt accordingly -->
+        <Configuration name ="CommandLineLauncher">
+            <Title>%(TitleString)s</Title>
+            <LabelText>%(LabelString)s</LabelText>
+            <GridWidth>%(GridWidth)s</GridWidth>
+            <CommandList>
+                <!-- This is the sytax for command entries:
+                <Command text="TEXT"><![CDATA[SHELLCOMMAND]]></Command>
+                -->
+            </CommandList>
+        </Configuration>
+    </SpecialConfigurations>
+</CLLConfig>
+""" % DefaultConfig
 
 class CommandDescription:
     def __init__(self, text, command):
@@ -52,14 +81,36 @@ def calculateButtonWidth(commands):
             textlen = len(com.text)
     return textlen
 
+def errorMessageAndExit(message):
+    """Show an error message box and exit"""
+    tkMessageBox.showerror("Command Line Launcher", message)    
+    exitProgram(1)
+
+def openConfigFile(fileName):
+    """open the file, if it doesn't exist, create it, if it doesn't work 
+    exit program with error message"""
+    try:
+        f = open(ConfigFileName,'r')
+    except IOError:
+        try:
+            with open(ConfigFileName,'w') as f:
+                f.write(ConfigFileDefaultContents)
+            f.close()
+            f = open(ConfigFileName,'r')
+        except:
+            errorMessageAndExit("config File %s cannot be read or written!" % ConfigFileName)
+    # here, f should be a valid file handle
+    return f
+
 def parseConfigXMLFile(name):
     """
     Read and parse config File ~/.commandlinelauncher.xml with Commands-structure
     return read config or DefaultConfig on error
     """
+    f = openConfigFile(ConfigFileName)
     config = {}
     try:
-        tree = ET.parse(ConfigFileName)
+        tree = ET.parse(f)
         root = tree.getroot()
         # at the moment, no general configuration items defined
         # find first matching configuration within SpecialConfiguration tag
@@ -79,6 +130,9 @@ def parseConfigXMLFile(name):
             config['Commands'] = comLst
     except:
         config = {}
+    # here f should be a valid file handle => close it
+    f.close()
+    
     # return read config or DefaultConfig on error
     if config:
         return config
@@ -86,9 +140,14 @@ def parseConfigXMLFile(name):
         return DefaultConfig
 
 def determineConfigName():
-    #TODO: really determine active configuration name according to file name or command line argument
-    #return 'UltraRemote'
-    return 'TestLauncher'
+    """determine configuration name according to file name or command line argument"""
+    # get config name from file name
+    match = re.search('([^/]+).py$', sys.argv[0])
+    configName = match.group(1)
+    # take config name from argument if given 
+    if(len(sys.argv) > 1):
+        configName = sys.argv[1]
+    return configName
 
 def showDialog(config):
     """create the dialog and call the main loop"""
@@ -101,7 +160,7 @@ def showDialog(config):
     win.pack()
     # add a title string to the top
     Tkinter.Label(win, text=config['LabelString']).grid(row=0, columnspan=gridwidth, pady=(0,20))
-    # add the buttons for teh system command
+    # add the buttons for the system command
     lastrow = addButtons(win, config, buttonwidth)
     # add a close-button
     button = Tkinter.Button(win, text="Close", command=(lambda: exitProgram(0)), width=buttonwidth)
