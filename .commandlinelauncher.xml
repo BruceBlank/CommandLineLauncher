@@ -7,6 +7,7 @@
 			<Title>Ultra Remote</Title>
 			<LabelText>What do you want to do?</LabelText>
 			<GridWidth>3</GridWidth>
+			<ShowCommandOutput>1</ShowCommandOutput>
 			<CommandList>
 				<Command text="Wake Up"><![CDATA[sudo etherwake 00:1C:85:40:24:E3]]></Command>
 				<Command text="Shutdown"><![CDATA[ssh ultra@ultra sudo shutdown -h now]]></Command>
@@ -15,11 +16,12 @@
 				<Command text="Bark"><![CDATA[play /usr/share/sounds/gnome/default/alerts/bark.ogg]]></Command>	
 			</CommandList>
 		</Configuration>
-		<!-- This is a configuration for BARKing -->
+		<!-- This is a configuration for Testing -->
 		<Configuration name="TestLauncher">
-			<Title>BARK Configuration</Title>
-			<LabelText>This is a Test configuration for CommandLineLauncher</LabelText>
+			<Title>Test Configuration</Title>
+			<LabelText>This is a Test configuration for CommandLineLauncher\nBlah Blah Blah\n Zack Bumm Peng!</LabelText>
 			<GridWidth>3</GridWidth>
+			<ShowCommandOutput>1</ShowCommandOutput>
 			<CommandList>
 				<Command text="Bark1"><![CDATA[play /usr/share/sounds/gnome/default/alerts/bark.ogg]]></Command>	
 				<Command text="Drip1"><![CDATA[play /usr/share/sounds/gnome/default/alerts/drip.ogg]]></Command>	

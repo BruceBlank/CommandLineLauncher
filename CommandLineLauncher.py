@@ -17,8 +17,10 @@ import tkMessageBox
 import xml.etree.ElementTree as ET
 import re
 
+#TODO: stream standard output and standard error of system command to text boxes (use subprocess.popen)
+#TODO: separate GUI and processing into different threads (use subprocess.popen)
+#TODO: disable all buttons while shell command executes  
 #TODO: add a text box with scrollbars for output and error messages of system command (add a minimum text box size)
-#TODO: add an option in XML config file to show or not show the output and error messages
 
 # the name of the configuration file in users home directory
 ConfigFileName = os.path.expanduser('~') + '/.commandlinelauncher.xml'
@@ -28,7 +30,8 @@ DefaultConfig = {
                  'TitleString' : 'Command Line Launcher' ,
                  'LabelString' : "Please edit the file %s and rename the script, to match a certain configuration" % ConfigFileName,
                  'Commands'    : [] ,
-                 'GridWidth' : 1
+                 'GridWidth' : 1 ,
+                 'ShowCommandOutput' : 1
 } 
 
 # contents of the config file. Will be written, if no config file can be found
@@ -41,6 +44,7 @@ ConfigFileDefaultContents = """<?xml version="1.0" encoding="UTF-8" ?>
             <Title>%(TitleString)s</Title>
             <LabelText>%(LabelString)s</LabelText>
             <GridWidth>%(GridWidth)s</GridWidth>
+            <ShowCommandOutput>%(ShowCommandOutput)s</ShowCommandOutput>
             <CommandList>
                 <!-- This is the sytax for command entries:
                 <Command text="TEXT"><![CDATA[SHELLCOMMAND]]></Command>
@@ -124,6 +128,7 @@ def parseConfigXMLFile(name):
             config['TitleString'] = matchingConfig.find('Title').text
             config['LabelString'] = matchingConfig.find('LabelText').text
             config['GridWidth'] = int(matchingConfig.find('GridWidth').text)
+            config['ShowCommandOutput'] = int(matchingConfig.find('ShowCommandOutput').text)
             comLst = []
             for c in matchingConfig.findall("./CommandList/Command"):
                 comLst.append(CommandDescription(c.attrib['text'], c.text))
@@ -159,16 +164,22 @@ def showDialog(config):
     win = Tkinter.Frame(padx=20, pady=20)
     win.pack()
     # add a title string to the top
-    Tkinter.Label(win, text=config['LabelString']).grid(row=0, columnspan=gridwidth, pady=(0,20))
+    label = Tkinter.Label(win, text=config['LabelString'].decode("string_escape"))
+    label.grid(row=0, columnspan=gridwidth, pady=(0,20))
     # add the buttons for the system command
-    lastrow = addButtons(win, config, buttonwidth)
-    # add a close-button
+    nextrow = addButtons(win, config, buttonwidth) + 1
+    # maybe add text boxes and labels for cout and cerr of system commands 
+    if(config['ShowCommandOutput'] > 0):
+        label = Tkinter.Label(win, text='Standard Output')
+        label.grid(row=nextrow, column=0, columnspan=gridwidth, pady=(20,0), sticky=Tkinter.NW)
+        nextrow += 1
+        label = Tkinter.Label(win, text='Standard Error')
+        label.grid(row=nextrow, column=0, columnspan=gridwidth, pady=(20,0), sticky=Tkinter.NW)
+        nextrow += 1
+    # add a close-button and center 
     button = Tkinter.Button(win, text="Close", command=(lambda: exitProgram(0)), width=buttonwidth)
-    # center close-button (according to odd/even gridwidth)
-    if(gridwidth & 1):
-        button.grid(row=lastrow+1, column=gridwidth/2, pady=(20,0), columnspan=1)
-    else:
-        button.grid(row=lastrow+1, column=gridwidth/2-1, pady=(20,0), columnspan=2)
+    button.grid(row=nextrow, column=0, pady=(20,0), columnspan=gridwidth)
+    # main loop
     win.mainloop()
 
 if __name__ == '__main__':    
