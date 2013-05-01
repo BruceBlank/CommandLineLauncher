@@ -17,6 +17,7 @@ import tkMessageBox
 import xml.etree.ElementTree as ET
 import re
 
+#TODO: Move config file parsing etc. to a class
 #TODO: stream standard output and standard error of system command to text boxes (use subprocess.popen)
 #TODO: separate GUI and processing into different threads (use subprocess.popen)
 #TODO: disable all buttons while shell command executes  
@@ -59,31 +60,10 @@ class CommandDescription:
     def __init__(self, text, command):
         self.text = text
         self.command = command
-
+        
 def exitProgram(status):
     """exit this Python script"""    
     Tkinter.sys.exit(status)
-
-def addButtons(win, config, buttonwidth):
-    """add buttons to the grid according to the defined commands"""
-    col = 0
-    row = 1
-    for com in config['Commands']:
-        button = Tkinter.Button(win, text=com.text, command=(lambda c=com.command: os.system(c)), width=buttonwidth)
-        button.grid(row=row, column=col, padx=3, pady=3)
-        col += 1
-        if(col==config['GridWidth']):
-            col = 0
-            row += 1
-    return row
-        
-def calculateButtonWidth(commands):
-    """calculate the width of a button according to text sizes"""
-    textlen = 0
-    for com in commands:
-        if textlen < len(com.text):
-            textlen = len(com.text)
-    return textlen
 
 def errorMessageAndExit(message):
     """Show an error message box and exit"""
@@ -154,35 +134,62 @@ def determineConfigName():
         configName = sys.argv[1]
     return configName
 
-def showDialog(config):
-    """create the dialog and call the main loop"""
-    buttonwidth = calculateButtonWidth(config['Commands'])
-    gridwidth = config['GridWidth']
-    # initialize dialog
-    root = Tkinter.Tk()
-    root.title(config['TitleString'])
-    win = Tkinter.Frame(padx=20, pady=20)
-    win.pack()
-    # add a title string to the top
-    label = Tkinter.Label(win, text=config['LabelString'].decode("string_escape"))
-    label.grid(row=0, columnspan=gridwidth, pady=(0,20))
-    # add the buttons for the system command
-    nextrow = addButtons(win, config, buttonwidth) + 1
-    # maybe add text boxes and labels for cout and cerr of system commands 
-    if(config['ShowCommandOutput'] > 0):
-        label = Tkinter.Label(win, text='Standard Output')
-        label.grid(row=nextrow, column=0, columnspan=gridwidth, pady=(20,0), sticky=Tkinter.NW)
-        nextrow += 1
-        label = Tkinter.Label(win, text='Standard Error')
-        label.grid(row=nextrow, column=0, columnspan=gridwidth, pady=(20,0), sticky=Tkinter.NW)
-        nextrow += 1
-    # add a close-button and center 
-    button = Tkinter.Button(win, text="Close", command=(lambda: exitProgram(0)), width=buttonwidth)
-    button.grid(row=nextrow, column=0, pady=(20,0), columnspan=gridwidth)
-    # main loop
-    win.mainloop()
+class Application(Tkinter.Frame):
+    """A class that represents the applications window"""        
+
+    @staticmethod
+    def executeCommand(command):
+        os.system(command)
+
+    def calculateButtonWidth(self):
+        """calculate the width of a button according to text sizes"""
+        textlen = 0
+        for com in self.config["Commands"]:
+            if textlen < len(com.text):
+                textlen = len(com.text)
+        return textlen
+
+    def addButtons(self):
+        """add buttons to the grid according to the defined commands"""
+        col = 0
+        row = 1
+        for com in self.config['Commands']:
+            print com.text
+            button = Tkinter.Button(self, text=com.text, command=(lambda c=com.command: self.executeCommand(c)), width=self.buttonwidth)
+            button.grid(row=row, column=col, padx=3, pady=3)
+            col += 1
+            if(col==self.config['GridWidth']):
+                col = 0
+                row += 1
+        return row
+           
+    def __init__(self, config):
+        Tkinter.Frame.__init__(self, padx=20, pady=20)
+        self.config = config
+        self.buttonwidth = self.calculateButtonWidth()
+        """create the dialog and call the main loop"""
+        gridwidth = self.config['GridWidth']
+        self.pack()
+        # add a title string to the top
+        label = Tkinter.Label(self, text=self.config['LabelString'].decode("string_escape"))
+        label.grid(row=0, columnspan=gridwidth, pady=(0, 20))
+        # add the buttons for the system command
+        nextrow = self.addButtons() + 1
+        # maybe add text boxes and labels for cout and cerr of system commands 
+        if(config['ShowCommandOutput'] > 0):
+            label = Tkinter.Label(self, text='Standard Output')
+            label.grid(row=nextrow, column=0, columnspan=gridwidth, pady=(20, 0), sticky=Tkinter.NW)
+            nextrow += 1
+            label = Tkinter.Label(self, text='Standard Error')
+            label.grid(row=nextrow, column=0, columnspan=gridwidth, pady=(20, 0), sticky=Tkinter.NW)
+            nextrow += 1
+        # add a close-button and center 
+        button = Tkinter.Button(self, text="Close", command=(lambda: exitProgram(0)), width=self.buttonwidth)
+        button.grid(row=nextrow, column=0, pady=(20, 0), columnspan=gridwidth)
+
 
 if __name__ == '__main__':    
     configName = determineConfigName()
     config = parseConfigXMLFile(configName)
-    showDialog(config)
+    app = Application(config)
+    app.mainloop()
