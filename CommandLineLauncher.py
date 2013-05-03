@@ -17,26 +17,45 @@ import tkMessageBox
 import xml.etree.ElementTree as ET
 import re
 
-#TODO: Move config file parsing etc. to a class
 #TODO: stream standard output and standard error of system command to text boxes (use subprocess.popen)
 #TODO: separate GUI and processing into different threads (use subprocess.popen)
 #TODO: disable all buttons while shell command executes  
-#TODO: add a text box with scrollbars for output and error messages of system command (add a minimum text box size)
+#TODO: output text boxes can be shown or hidden with buttons and/or with config file entry
 
-# the name of the configuration file in users home directory
-ConfigFileName = os.path.expanduser('~') + '/.commandlinelauncher.xml'
+class Helper:
+    @staticmethod        
+    def exitProgram(status):
+        """exit this Python script"""    
+        Tkinter.sys.exit(status)
 
-# the default configuration is empty
-DefaultConfig = {
-                 'TitleString' : 'Command Line Launcher' ,
-                 'LabelString' : "Please edit the file %s and rename the script, to match a certain configuration" % ConfigFileName,
-                 'Commands'    : [] ,
-                 'GridWidth' : 1 ,
-                 'ShowCommandOutput' : 1
-} 
+    @staticmethod
+    def errorMessageAndExit(message):
+        """Show an error message box and exit"""
+        tkMessageBox.showerror("Command Line Launcher", message)    
+        Helper.exitProgram(1)
 
-# contents of the config file. Will be written, if no config file can be found
-ConfigFileDefaultContents = """<?xml version="1.0" encoding="UTF-8" ?>
+class CommandDescription:
+    def __init__(self, text, command):
+        self.text = text
+        self.command = command
+
+class ConfigFileParser:
+    """a class to hold config file stuff """
+
+    # the name of the configuration file in users home directory
+    DefaultConfigFileName = os.path.expanduser('~') + '/.commandlinelauncher.xml'
+
+    # the default configuration is empty
+    DefaultConfig = {
+                     'TitleString' : 'Command Line Launcher' ,
+                     'LabelString' : "Please edit the file %s and rename the script, to match a certain configuration" % DefaultConfigFileName,
+                     'Commands'    : [] ,
+                     'GridWidth' : 1 ,
+                     'ShowCommandOutput' : 1
+                     } 
+
+    # contents of the config file. Will be written, if no config file can be found
+    ConfigFileDefaultContents = """<?xml version="1.0" encoding="UTF-8" ?>
 <CLLConfig>
     <GeneralConfiguration></GeneralConfiguration>
     <SpecialConfigurations>
@@ -56,84 +75,75 @@ ConfigFileDefaultContents = """<?xml version="1.0" encoding="UTF-8" ?>
 </CLLConfig>
 """ % DefaultConfig
 
-class CommandDescription:
-    def __init__(self, text, command):
-        self.text = text
-        self.command = command
-        
-def exitProgram(status):
-    """exit this Python script"""    
-    Tkinter.sys.exit(status)
-
-def errorMessageAndExit(message):
-    """Show an error message box and exit"""
-    tkMessageBox.showerror("Command Line Launcher", message)    
-    exitProgram(1)
-
-def openConfigFile(fileName):
-    """open the file, if it doesn't exist, create it, if it doesn't work 
-    exit program with error message"""
-    try:
-        f = open(ConfigFileName,'r')
-    except IOError:
+    @staticmethod
+    def openConfigFile(fileName):
+        """open the file, if it doesn't exist, create it, if it doesn't work 
+        exit program with error message"""
         try:
-            with open(ConfigFileName,'w') as f:
-                f.write(ConfigFileDefaultContents)
-            f.close()
-            f = open(ConfigFileName,'r')
-        except:
-            errorMessageAndExit("config File %s cannot be read or written!" % ConfigFileName)
-    # here, f should be a valid file handle
-    return f
+            f = open(fileName,'r')
+        except IOError:
+            try:
+                with open(fileName,'w') as f:
+                    f.write(ConfigFileParser.ConfigFileDefaultContents)
+                f.close()
+                f = open(fileName,'r')
+            except:
+                Helper.errorMessageAndExit("config File %s cannot be read or written!" % fileName)
+        # here, f should be a valid file handle
+        return f
 
-def parseConfigXMLFile(name):
-    """
-    Read and parse config File ~/.commandlinelauncher.xml with Commands-structure
-    return read config or DefaultConfig on error
-    """
-    f = openConfigFile(ConfigFileName)
-    config = {}
-    try:
-        tree = ET.parse(f)
-        root = tree.getroot()
-        # at the moment, no general configuration items defined
-        # find first matching configuration within SpecialConfiguration tag
-        matchingConfig = None
-        for c in root.findall("./SpecialConfigurations/Configuration"):
-            if(c.attrib['name'] == name):
-                matchingConfig=c
-                break
-        if(matchingConfig is not None):
-            # matching config found, set options accordingly
-            config['TitleString'] = matchingConfig.find('Title').text
-            config['LabelString'] = matchingConfig.find('LabelText').text
-            config['GridWidth'] = int(matchingConfig.find('GridWidth').text)
-            config['ShowCommandOutput'] = int(matchingConfig.find('ShowCommandOutput').text)
-            comLst = []
-            for c in matchingConfig.findall("./CommandList/Command"):
-                comLst.append(CommandDescription(c.attrib['text'], c.text))
-            config['Commands'] = comLst
-    except:
+    def getConfiguration(self):
+        """
+        Read and parse config File ~/.commandlinelauncher.xml with Commands-structure
+        return read config or DefaultConfig on error
+        """
+        f = ConfigFileParser.openConfigFile(self.configFileName)
         config = {}
-    # here f should be a valid file handle => close it
-    f.close()
-    
-    # return read config or DefaultConfig on error
-    if config:
-        return config
-    else:
-        return DefaultConfig
+        try:
+            tree = ET.parse(f)
+            root = tree.getroot()
+            # at the moment, no general configuration items defined
+            # find first matching configuration within SpecialConfiguration tag
+            matchingConfig = None
+            for c in root.findall("./SpecialConfigurations/Configuration"):
+                if(c.attrib['name'] == self.configName):
+                    matchingConfig=c
+                    break
+            if(matchingConfig is not None):
+                # matching config found, set options accordingly
+                config['TitleString'] = matchingConfig.find('Title').text
+                config['LabelString'] = matchingConfig.find('LabelText').text
+                config['GridWidth'] = int(matchingConfig.find('GridWidth').text)
+                config['ShowCommandOutput'] = int(matchingConfig.find('ShowCommandOutput').text)
+                comLst = []
+                for c in matchingConfig.findall("./CommandList/Command"):
+                    comLst.append(CommandDescription(c.attrib['text'], c.text))
+                config['Commands'] = comLst
+        except:
+            config = {}
+        # here f should be a valid file handle => close it
+        f.close()
+        
+        # return read config or DefaultConfig on error
+        if config:
+            return config
+        else:
+            return Helper.DefaultConfig
 
-def determineConfigName():
-    """determine configuration name according to file name or command line argument"""
-    # get config name from file name
-    match = re.search('([^/]+).py$', sys.argv[0])
-    configName = match.group(1)
-    # take config name from argument if given 
-    if(len(sys.argv) > 1):
-        configName = sys.argv[1]
-    return configName
-
+    def __init__(self, configFileName = None, configName = None):
+        self.configFileName = configFileName
+        self.configName = configName
+       
+        if(self.configFileName is None):
+            self.configFileName = self.DefaultConfigFileName
+        if(self.configName is None):
+            # get config name from file name
+            match = re.search('([^/]+).py$', sys.argv[0])
+            self.configName = match.group(1)
+            # take config name from argument if given 
+            if(len(sys.argv) > 1):
+                self.configName = sys.argv[1]
+ 
 class Application(Tkinter.Frame):
     """A class that represents the applications window"""        
 
@@ -184,12 +194,12 @@ class Application(Tkinter.Frame):
             label.grid(row=nextrow, column=0, columnspan=gridwidth, pady=(20, 0), sticky=Tkinter.NW)
             nextrow += 1
         # add a close-button and center 
-        button = Tkinter.Button(self, text="Close", command=(lambda: exitProgram(0)), width=self.buttonwidth)
+        button = Tkinter.Button(self, text="Close", command=(lambda: Helper.exitProgram(0)), width=self.buttonwidth)
         button.grid(row=nextrow, column=0, pady=(20, 0), columnspan=gridwidth)
 
 
-if __name__ == '__main__':    
-    configName = determineConfigName()
-    config = parseConfigXMLFile(configName)
+if __name__ == '__main__':
+    parser = ConfigFileParser()
+    config = parser.getConfiguration()
     app = Application(config)
     app.mainloop()
