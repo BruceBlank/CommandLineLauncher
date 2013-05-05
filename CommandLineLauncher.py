@@ -16,13 +16,14 @@ import Tkinter
 import tkMessageBox
 import xml.etree.ElementTree as ET
 import re
+import threading
 
 #TODO: stream standard output and standard error of system command to text boxes (use subprocess.popen)
 #TODO: separate GUI and processing into different threads (use subprocess.popen)
 #TODO: disable all buttons while shell command executes  
 #TODO: output text boxes can be shown or hidden with buttons and/or with config file entry
 
-class Helper:
+class CHelper:
     @staticmethod        
     def exitProgram(status):
         """exit this Python script"""    
@@ -32,14 +33,14 @@ class Helper:
     def errorMessageAndExit(message):
         """Show an error message box and exit"""
         tkMessageBox.showerror("Command Line Launcher", message)    
-        Helper.exitProgram(1)
+        CHelper.exitProgram(1)
 
-class CommandDescription:
+class CCommandDescription:
     def __init__(self, text, command):
         self.text = text
         self.command = command
 
-class ConfigFileParser:
+class CConfigFileParser:
     """a class to hold config file stuff """
 
     # the name of the configuration file in users home directory
@@ -84,11 +85,11 @@ class ConfigFileParser:
         except IOError:
             try:
                 with open(fileName,'w') as f:
-                    f.write(ConfigFileParser.ConfigFileDefaultContents)
+                    f.write(CConfigFileParser.ConfigFileDefaultContents)
                 f.close()
                 f = open(fileName,'r')
             except:
-                Helper.errorMessageAndExit("config File %s cannot be read or written!" % fileName)
+                CHelper.errorMessageAndExit("config File %s cannot be read or written!" % fileName)
         # here, f should be a valid file handle
         return f
 
@@ -97,7 +98,7 @@ class ConfigFileParser:
         Read and parse config File ~/.commandlinelauncher.xml with Commands-structure
         return read config or DefaultConfig on error
         """
-        f = ConfigFileParser.openConfigFile(self.configFileName)
+        f = CConfigFileParser.openConfigFile(self.configFileName)
         config = {}
         try:
             tree = ET.parse(f)
@@ -117,7 +118,7 @@ class ConfigFileParser:
                 config['ShowCommandOutput'] = int(matchingConfig.find('ShowCommandOutput').text)
                 comLst = []
                 for c in matchingConfig.findall("./CommandList/Command"):
-                    comLst.append(CommandDescription(c.attrib['text'], c.text))
+                    comLst.append(CCommandDescription(c.attrib['text'], c.text))
                 config['Commands'] = comLst
         except:
             config = {}
@@ -128,7 +129,7 @@ class ConfigFileParser:
         if config:
             return config
         else:
-            return Helper.DefaultConfig
+            return CHelper.DefaultConfig
 
     def __init__(self, configFileName = None, configName = None):
         self.configFileName = configFileName
@@ -143,14 +144,37 @@ class ConfigFileParser:
             # take config name from argument if given 
             if(len(sys.argv) > 1):
                 self.configName = sys.argv[1]
- 
-class Application(Tkinter.Frame):
+
+class CApplication(Tkinter.Frame):
     """A class that represents the applications window"""        
 
-    @staticmethod
-    def executeCommand(command):
-        os.system(command)
+    # static variables
+    UpdateInterval = 200
 
+    def executeCommand(self, command):
+        # dont allow multiple running threads
+        if self.currentThread is not None:
+            return
+
+        #TODO: disable all buttons in GUI. This didnt work
+            for button in self.commandButtons:
+                button.config(state="disabled")
+        
+        self.currentThread = threading.Thread(target=os.system, args=(command,))
+        #self.currentThread = threading.Thread(target=os.system, args=("ping -c 5 192.168.1.102",))
+        self.currentThread.start()
+
+    def updateGUI(self):
+        # test if work thread is still working and update data and GUI if not
+        if self.currentThread is not None and not self.currentThread.isAlive():
+            self.currentThread = None
+            
+            #TODO: enable all buttons in GUI. This didnt work
+            for button in self.commandButtons:
+                button.config(state="normal")
+            
+        self.master.after(self.UpdateInterval, self.updateGUI)
+        
     def calculateButtonWidth(self):
         """calculate the width of a button according to text sizes"""
         textlen = 0
@@ -167,16 +191,20 @@ class Application(Tkinter.Frame):
             print com.text
             button = Tkinter.Button(self, text=com.text, command=(lambda c=com.command: self.executeCommand(c)), width=self.buttonwidth)
             button.grid(row=row, column=col, padx=3, pady=3)
+            self.commandButtons.append(button)
             col += 1
             if(col==self.config['GridWidth']):
                 col = 0
                 row += 1
         return row
            
-    def __init__(self, config):
-        Tkinter.Frame.__init__(self, padx=20, pady=20)
+    def __init__(self, master, config):
+        Tkinter.Frame.__init__(self, master, padx=20, pady=20)
+        self.master = master
         self.config = config
+        self.currentThread = None
         self.buttonwidth = self.calculateButtonWidth()
+        self.commandButtons = []
         """create the dialog and call the main loop"""
         gridwidth = self.config['GridWidth']
         self.pack()
@@ -194,12 +222,13 @@ class Application(Tkinter.Frame):
             label.grid(row=nextrow, column=0, columnspan=gridwidth, pady=(20, 0), sticky=Tkinter.NW)
             nextrow += 1
         # add a close-button and center 
-        button = Tkinter.Button(self, text="Close", command=(lambda: Helper.exitProgram(0)), width=self.buttonwidth)
+        button = Tkinter.Button(self, text="Close", command=(lambda: CHelper.exitProgram(0)), width=self.buttonwidth)
         button.grid(row=nextrow, column=0, pady=(20, 0), columnspan=gridwidth)
-
+        # update GUI periodically
+        self.master.after(self.UpdateInterval, self.updateGUI)
 
 if __name__ == '__main__':
-    parser = ConfigFileParser()
+    parser = CConfigFileParser()
     config = parser.getConfiguration()
-    app = Application(config)
+    app = CApplication(Tkinter.Tk(), config)
     app.mainloop()
