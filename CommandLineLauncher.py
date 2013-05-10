@@ -152,6 +152,8 @@ class CApplication(Tkinter.Frame):
     UpdateInterval = 200
 
     def executeCommand(self, command):
+        #FORTESTING:
+        self.toggleOutputWindow()
         # dont allow multiple running threads
         if self.currentThread is not None:
             return
@@ -198,13 +200,25 @@ class CApplication(Tkinter.Frame):
                 row += 1
         return row
            
+    def toggleOutputWindow(self):
+        if(self.outputWindowVisible):
+            self.errWindow.grid_remove()
+            self.outputWindowVisible = False
+        else:
+            self.errWindow.grid()
+            self.outputWindowVisible = True
+           
     def __init__(self, master, config):
         Tkinter.Frame.__init__(self, master, padx=20, pady=20)
+        # define the instance variables
         self.master = master
         self.config = config
         self.currentThread = None
         self.buttonwidth = self.calculateButtonWidth()
         self.commandButtons = []
+        self.errWindow = None
+        self.outWindow = None
+        self.outputWindowVisible = True
         """create the dialog and call the main loop"""
         gridwidth = self.config['GridWidth']
         self.pack()
@@ -213,14 +227,17 @@ class CApplication(Tkinter.Frame):
         label.grid(row=0, columnspan=gridwidth, pady=(0, 20))
         # add the buttons for the system command
         nextrow = self.addButtons() + 1
-        # maybe add text boxes and labels for cout and cerr of system commands 
-        if(config['ShowCommandOutput'] > 0):
-            label = Tkinter.Label(self, text='Standard Output')
-            label.grid(row=nextrow, column=0, columnspan=gridwidth, pady=(20, 0), sticky=Tkinter.NW)
-            nextrow += 1
-            label = Tkinter.Label(self, text='Standard Error')
-            label.grid(row=nextrow, column=0, columnspan=gridwidth, pady=(20, 0), sticky=Tkinter.NW)
-            nextrow += 1
+        # add text boxes and labels for cout and cerr of system commands 
+        label = Tkinter.Label(self, text='Standard Output')
+        label.grid(row=nextrow, column=0, columnspan=gridwidth, pady=(20, 0), sticky="NW")
+        nextrow += 1
+        self.errWindow = Tkinter.Text(self, width=1, height=10)
+        self.errWindow.grid(row=nextrow, column=0, columnspan=gridwidth, pady=(20, 0), sticky="WENS")
+        # show the output window?
+        if(config["ShowCommandOutput"]==0):
+            self.toggleOutputWindow()
+        nextrow += 1
+        #TODO: maybe show a STDERR-Textbox
         # add a close-button and center 
         button = Tkinter.Button(self, text="Close", command=(lambda: CHelper.exitProgram(0)), width=self.buttonwidth)
         button.grid(row=nextrow, column=0, pady=(20, 0), columnspan=gridwidth)
