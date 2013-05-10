@@ -157,8 +157,8 @@ class CApplication(Tkinter.Frame):
             return
 
         #TODO: disable all buttons in GUI. This didnt work
-            for button in self.commandButtons:
-                button.config(state="disabled")
+        for button in self.commandButtons:
+            button.config(state="disabled")
         
         self.currentThread = threading.Thread(target=os.system, args=(command,))
         #self.currentThread = threading.Thread(target=os.system, args=("ping -c 5 192.168.1.102",))
@@ -169,9 +169,9 @@ class CApplication(Tkinter.Frame):
         if self.currentThread is not None and not self.currentThread.isAlive():
             self.currentThread = None
             
-            #TODO: enable all buttons in GUI. This didnt work
-            for button in self.commandButtons:
-                button.config(state="normal")
+        #TODO: enable all buttons in GUI. This didnt work
+        for button in self.commandButtons:
+            button.config(state="normal")
             
         self.master.after(self.UpdateInterval, self.updateGUI)
         
