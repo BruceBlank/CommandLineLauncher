@@ -17,6 +17,8 @@ import tkMessageBox
 import xml.etree.ElementTree as ET
 import re
 import threading
+#FORTESTING:
+import subprocess
 
 #TODO: stream standard output and standard error of system command to text boxes (use subprocess.popen)
 #TODO: separate GUI and processing into different threads (use subprocess.popen)
@@ -152,30 +154,31 @@ class CApplication(Tkinter.Frame):
     UpdateInterval = 200
 
     def executeCommand(self, command):
-        #FORTESTING:
-        self.toggleOutputWindow()
-        # dont allow multiple running threads
-        if self.currentThread is not None:
+        if self.proc is not None:
             return
-
+       
         #TODO: disable all buttons in GUI. This didnt work
         for button in self.commandButtons:
             button.config(state="disabled")
         
-        self.currentThread = threading.Thread(target=os.system, args=(command,))
-        #self.currentThread = threading.Thread(target=os.system, args=("ping -c 5 192.168.1.102",))
-        self.currentThread.start()
+        self.proc=subprocess.Popen(command, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+                
 
     def updateGUI(self):
-        # test if work thread is still working and update data and GUI if not
-        if self.currentThread is not None and not self.currentThread.isAlive():
-            self.currentThread = None
-            
-        #TODO: enable all buttons in GUI. This didnt work
-        for button in self.commandButtons:
-            button.config(state="normal")
-            
         self.master.after(self.UpdateInterval, self.updateGUI)
+
+        # output one line from the shell-command
+        #TODO: output stderr and stdout in output frame
+        #TODO: Dont wait, if there is no line 
+        if self.proc is not None:
+            print self.proc.stdout.readline()
+
+        # test if the subprocess has finished    
+        if self.proc is not None and self.proc.poll() is not None:    
+            self.proc = None
+            #TODO: enable all buttons in GUI. This didnt work
+            for button in self.commandButtons:
+                button.config(state="normal")           
         
     def calculateButtonWidth(self):
         """calculate the width of a button according to text sizes"""
@@ -213,12 +216,12 @@ class CApplication(Tkinter.Frame):
         # define the instance variables
         self.master = master
         self.config = config
-        self.currentThread = None
         self.buttonwidth = self.calculateButtonWidth()
         self.commandButtons = []
         self.errWindow = None
         self.outWindow = None
         self.outputWindowVisible = True
+        self.proc = None
         """create the dialog and call the main loop"""
         gridwidth = self.config['GridWidth']
         self.pack()
