@@ -15,16 +15,10 @@ import Tkinter
 # local imports
 from MyToolbox import CMyToolbox
 from ConfigFileParser import CConfigFileParser
-import CommandThread
+from CommandThread import CCommandThread
 
-#TODO: remove that:
-import threading
-import subprocess
-
-#TODO: stream standard output and standard error of system command to text boxes (use subprocess.popen)
-#TODO: separate GUI and processing into different threads (use subprocess.popen)
-#TODO: disable all buttons while shell command executes  
-#TODO: output text boxes can be shown or hidden with buttons and/or with config file entry
+#TODO: output text boxes can be shown or hidden with buttons and/or with config file entry (?)
+#TODO: resize output frame, when application window will be resized
 
 class CCommandLineLauncher(Tkinter.Frame):
     """A class that represents the applications window"""        
@@ -32,47 +26,42 @@ class CCommandLineLauncher(Tkinter.Frame):
     # static variables
     UpdateInterval = 200
 
-    def commandThread(self, command):
-        #FORTESTING:
-        #command="echo 1; sleep 1; echo 2; sleep 2; echo 3"
-        self.proc=subprocess.Popen(command, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-        # output one line from the shell-command
-        #TODO: output stderr and stdout in output frame
-        #TODO: Dont wait, if there is no line 
-        while self.proc is not None and self.proc.poll() is None:
-            sys.stdout.write(".")
-            sys.stdout.flush()
-            line = self.proc.stdout.readline()
-            sys.stdout.write(line)
-            sys.stdout.flush()            
-        #for i in range(10):
-        #    print i
-        #    time.sleep(0.5)
-
     def executeCommand(self, command):
-        #TODO: dont use self.proc here, but special variables shared with commandThread: threading.Lock()
-        if self.proc is not None:
+        """ execute the command in shell """
+        # dont execute two commands at the same time
+        if not self.commandThread or self.commandThread.isRunning():
             return
-       
+        
         # disable all buttons in GUI.
+        self.buttonsDisabled = True
         for button in self.commandButtons:
             button.config(state="disabled")
         
-        #FORTESTING
-        tt1 = threading.Thread(target=self.commandThread, args=(command,))
-        tt1.start()
+        # clear text in output frame
+        self.outputWindow.delete(1.0, "end")
+        
+        # set the command and start the thread.
+        self.commandThread = CCommandThread()
+        self.commandThread.setCommand(command)        
+        self.commandThread.start()
         
     def updateGUI(self):
+        """ will be called in GUIs update loop. """
         self.master.after(self.UpdateInterval, self.updateGUI)
 
-        #TODO: dont use self.proc here, but special variables shared with commandThread: threading.Lock()
+        # read output and update output frame
+        if self.commandThread and self.commandThread.isRunning():
+            lines = self.commandThread.dumpOutputLines()
+            for line in lines:
+                self.outputWindow.insert("end", line)
+            self.outputWindow.see("end")
 
-        # test if the subprocess has finished    
-        if self.proc is not None and self.proc.poll() is not None:    
-            self.proc = None
-            # enable all buttons in GUI.
+        # maybe enable all buttons in GUI
+        if self.buttonsDisabled and self.commandThread and not self.commandThread.isRunning():
+            self.buttonsDisabled = False
             for button in self.commandButtons:
-                button.config(state="normal")           
+                button.config(state="normal")
+
         
     def calculateButtonWidth(self):
         """calculate the width of a button according to text sizes"""
@@ -98,11 +87,12 @@ class CCommandLineLauncher(Tkinter.Frame):
         return row
            
     def toggleOutputWindow(self):
+        """ toggle between showing and not-showing the output window. """
         if(self.outputWindowVisible):
-            self.errWindow.grid_remove()
+            self.outputWindow.grid_remove()
             self.outputWindowVisible = False
         else:
-            self.errWindow.grid()
+            self.outputWindow.grid()
             self.outputWindowVisible = True
            
     def __init__(self, master, config):
@@ -112,10 +102,10 @@ class CCommandLineLauncher(Tkinter.Frame):
         self.config = config
         self.buttonwidth = self.calculateButtonWidth()
         self.commandButtons = []
-        self.errWindow = None
-        self.outWindow = None
+        self.outputWindow = None
         self.outputWindowVisible = True
-        self.proc = None
+        self.commandThread = CCommandThread()
+        self.buttonsDisabled = False
         """create the dialog and call the main loop"""
         gridwidth = self.config['GridWidth']
         self.pack()
@@ -128,8 +118,8 @@ class CCommandLineLauncher(Tkinter.Frame):
         label = Tkinter.Label(self, text='Standard Output')
         label.grid(row=nextrow, column=0, columnspan=gridwidth, pady=(20, 0), sticky="NW")
         nextrow += 1
-        self.errWindow = Tkinter.Text(self, width=1, height=10)
-        self.errWindow.grid(row=nextrow, column=0, columnspan=gridwidth, pady=(20, 0), sticky="WENS")
+        self.outputWindow = Tkinter.Text(self, width=1, height=10)
+        self.outputWindow.grid(row=nextrow, column=0, columnspan=gridwidth, pady=(20, 0), sticky="WENS")
         # show the output window?
         if(config["ShowCommandOutput"]==0):
             self.toggleOutputWindow()

@@ -9,10 +9,10 @@
 			<GridWidth>3</GridWidth>
 			<ShowCommandOutput>1</ShowCommandOutput>
 			<CommandList>
-				<Command text="Wake Ultra"><![CDATA[sudo etherwake 00:1C:85:40:24:E3]]></Command>
-				<Command text="Shutdown Ultra"><![CDATA[ssh ultra@ultra sudo shutdown -h now]]></Command>
+				<Command text="Wake Ultra"><![CDATA[sudo etherwake -D 00:1C:85:40:24:E3]]></Command>
+				<Command text="Shutdown Ultra"><![CDATA[ssh -v ultra@ultra sudo shutdown -h now]]></Command>
 				<Command text="Restart VDR on Ultra"><![CDATA[ssh ultra@ultra sudo /etc/init.d/vdr restart]]></Command>
-				<Command text="Wake Marenostrum2"><![CDATA[sudo etherwake 00:1C:C0:60:F0:6C]]></Command>
+				<Command text="Wake Marenostrum2"><![CDATA[sudo etherwake -D 00:1C:C0:60:F0:6C]]></Command>
 				<Command text="Bark"><![CDATA[play /usr/share/sounds/gnome/default/alerts/bark.ogg]]></Command>	
 				<Command text="Bark"><![CDATA[play /usr/share/sounds/gnome/default/alerts/bark.ogg]]></Command>	
 			</CommandList>
