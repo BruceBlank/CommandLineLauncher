@@ -10,14 +10,15 @@ So, you can use the same python script with different
 soft-links to it.   
 """
 
-import os
 import sys
 import Tkinter
-import tkMessageBox
-import xml.etree.ElementTree as ET
-import re
+# local imports
+from MyToolbox import CMyToolbox
+from ConfigFileParser import CConfigFileParser
+import CommandThread
+
+#TODO: remove that:
 import threading
-#FORTESTING:
 import subprocess
 
 #TODO: stream standard output and standard error of system command to text boxes (use subprocess.popen)
@@ -25,158 +26,51 @@ import subprocess
 #TODO: disable all buttons while shell command executes  
 #TODO: output text boxes can be shown or hidden with buttons and/or with config file entry
 
-class CHelper:
-    @staticmethod        
-    def exitProgram(status):
-        """exit this Python script"""    
-        Tkinter.sys.exit(status)
-
-    @staticmethod
-    def errorMessageAndExit(message):
-        """Show an error message box and exit"""
-        tkMessageBox.showerror("Command Line Launcher", message)    
-        CHelper.exitProgram(1)
-
-class CCommandDescription:
-    def __init__(self, text, command):
-        self.text = text
-        self.command = command
-
-class CConfigFileParser:
-    """a class to hold config file stuff """
-
-    # the name of the configuration file in users home directory
-    DefaultConfigFileName = os.path.expanduser('~') + '/.commandlinelauncher.xml'
-
-    # the default configuration is empty
-    DefaultConfig = {
-                     'TitleString' : 'Command Line Launcher' ,
-                     'LabelString' : "Please edit the file %s and rename the script, to match a certain configuration" % DefaultConfigFileName,
-                     'Commands'    : [] ,
-                     'GridWidth' : 1 ,
-                     'ShowCommandOutput' : 1
-                     } 
-
-    # contents of the config file. Will be written, if no config file can be found
-    ConfigFileDefaultContents = """<?xml version="1.0" encoding="UTF-8" ?>
-<CLLConfig>
-    <GeneralConfiguration></GeneralConfiguration>
-    <SpecialConfigurations>
-        <!-- This is the default configuration. Please adapt accordingly -->
-        <Configuration name ="CommandLineLauncher">
-            <Title>%(TitleString)s</Title>
-            <LabelText>%(LabelString)s</LabelText>
-            <GridWidth>%(GridWidth)s</GridWidth>
-            <ShowCommandOutput>%(ShowCommandOutput)s</ShowCommandOutput>
-            <CommandList>
-                <!-- This is the sytax for command entries:
-                <Command text="TEXT"><![CDATA[SHELLCOMMAND]]></Command>
-                -->
-            </CommandList>
-        </Configuration>
-    </SpecialConfigurations>
-</CLLConfig>
-""" % DefaultConfig
-
-    @staticmethod
-    def openConfigFile(fileName):
-        """open the file, if it doesn't exist, create it, if it doesn't work 
-        exit program with error message"""
-        try:
-            f = open(fileName,'r')
-        except IOError:
-            try:
-                with open(fileName,'w') as f:
-                    f.write(CConfigFileParser.ConfigFileDefaultContents)
-                f.close()
-                f = open(fileName,'r')
-            except:
-                CHelper.errorMessageAndExit("config File %s cannot be read or written!" % fileName)
-        # here, f should be a valid file handle
-        return f
-
-    def getConfiguration(self):
-        """
-        Read and parse config File ~/.commandlinelauncher.xml with Commands-structure
-        return read config or DefaultConfig on error
-        """
-        f = CConfigFileParser.openConfigFile(self.configFileName)
-        config = {}
-        try:
-            tree = ET.parse(f)
-            root = tree.getroot()
-            # at the moment, no general configuration items defined
-            # find first matching configuration within SpecialConfiguration tag
-            matchingConfig = None
-            for c in root.findall("./SpecialConfigurations/Configuration"):
-                if(c.attrib['name'] == self.configName):
-                    matchingConfig=c
-                    break
-            if(matchingConfig is not None):
-                # matching config found, set options accordingly
-                config['TitleString'] = matchingConfig.find('Title').text
-                config['LabelString'] = matchingConfig.find('LabelText').text
-                config['GridWidth'] = int(matchingConfig.find('GridWidth').text)
-                config['ShowCommandOutput'] = int(matchingConfig.find('ShowCommandOutput').text)
-                comLst = []
-                for c in matchingConfig.findall("./CommandList/Command"):
-                    comLst.append(CCommandDescription(c.attrib['text'], c.text))
-                config['Commands'] = comLst
-        except:
-            config = {}
-        # here f should be a valid file handle => close it
-        f.close()
-        
-        # return read config or DefaultConfig on error
-        if config:
-            return config
-        else:
-            return CHelper.DefaultConfig
-
-    def __init__(self, configFileName = None, configName = None):
-        self.configFileName = configFileName
-        self.configName = configName
-       
-        if(self.configFileName is None):
-            self.configFileName = self.DefaultConfigFileName
-        if(self.configName is None):
-            # get config name from file name
-            match = re.search('([^/]+).py$', sys.argv[0])
-            self.configName = match.group(1)
-            # take config name from argument if given 
-            if(len(sys.argv) > 1):
-                self.configName = sys.argv[1]
-
-class CApplication(Tkinter.Frame):
+class CCommandLineLauncher(Tkinter.Frame):
     """A class that represents the applications window"""        
 
     # static variables
     UpdateInterval = 200
 
-    def executeCommand(self, command):
-        if self.proc is not None:
-            return
-       
-        #TODO: disable all buttons in GUI. This didnt work
-        for button in self.commandButtons:
-            button.config(state="disabled")
-        
+    def commandThread(self, command):
+        #FORTESTING:
+        #command="echo 1; sleep 1; echo 2; sleep 2; echo 3"
         self.proc=subprocess.Popen(command, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-                
-
-    def updateGUI(self):
-        self.master.after(self.UpdateInterval, self.updateGUI)
-
         # output one line from the shell-command
         #TODO: output stderr and stdout in output frame
         #TODO: Dont wait, if there is no line 
+        while self.proc is not None and self.proc.poll() is None:
+            sys.stdout.write(".")
+            sys.stdout.flush()
+            line = self.proc.stdout.readline()
+            sys.stdout.write(line)
+            sys.stdout.flush()            
+        #for i in range(10):
+        #    print i
+        #    time.sleep(0.5)
+
+    def executeCommand(self, command):
+        #TODO: dont use self.proc here, but special variables shared with commandThread: threading.Lock()
         if self.proc is not None:
-            print self.proc.stdout.readline()
+            return
+       
+        # disable all buttons in GUI.
+        for button in self.commandButtons:
+            button.config(state="disabled")
+        
+        #FORTESTING
+        tt1 = threading.Thread(target=self.commandThread, args=(command,))
+        tt1.start()
+        
+    def updateGUI(self):
+        self.master.after(self.UpdateInterval, self.updateGUI)
+
+        #TODO: dont use self.proc here, but special variables shared with commandThread: threading.Lock()
 
         # test if the subprocess has finished    
         if self.proc is not None and self.proc.poll() is not None:    
             self.proc = None
-            #TODO: enable all buttons in GUI. This didnt work
+            # enable all buttons in GUI.
             for button in self.commandButtons:
                 button.config(state="normal")           
         
@@ -242,7 +136,7 @@ class CApplication(Tkinter.Frame):
         nextrow += 1
         #TODO: maybe show a STDERR-Textbox
         # add a close-button and center 
-        button = Tkinter.Button(self, text="Close", command=(lambda: CHelper.exitProgram(0)), width=self.buttonwidth)
+        button = Tkinter.Button(self, text="Close", command=(lambda: CMyToolbox.exitProgram(0)), width=self.buttonwidth)
         button.grid(row=nextrow, column=0, pady=(20, 0), columnspan=gridwidth)
         # update GUI periodically
         self.master.after(self.UpdateInterval, self.updateGUI)
@@ -250,5 +144,5 @@ class CApplication(Tkinter.Frame):
 if __name__ == '__main__':
     parser = CConfigFileParser()
     config = parser.getConfiguration()
-    app = CApplication(Tkinter.Tk(), config)
+    app = CCommandLineLauncher(Tkinter.Tk(), config)
     app.mainloop()
