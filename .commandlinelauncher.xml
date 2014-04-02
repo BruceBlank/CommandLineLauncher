@@ -3,15 +3,15 @@
 	<GeneralConfiguration></GeneralConfiguration>
 	<SpecialConfigurations>
 		<!-- This is the configuration for the Ultra Remote Control -->
-		<Configuration name ="UltraRemote">
-			<Title>Ultra Remote</Title>
+		<Configuration name ="SomeCommands">
+			<Title>Some Commands</Title>
 			<LabelText>What do you want to do?</LabelText>
 			<GridWidth>3</GridWidth>
 			<ShowCommandOutput>1</ShowCommandOutput>
 			<CommandList>
 				<Command text="Wake Ultra"><![CDATA[sudo etherwake -D 00:1C:85:40:24:E3]]></Command>
-				<Command text="Shutdown Ultra"><![CDATA[ssh -v ultra@ultra sudo shutdown -h now]]></Command>
-				<Command text="Restart VDR on Ultra"><![CDATA[ssh ultra@ultra sudo /etc/init.d/vdr restart]]></Command>
+				<Command text="Shutdown Ultra"><![CDATA[ssh -v ultra@ultra.local sudo shutdown -h now]]></Command>
+				<Command text="Ping Ulta"><![CDATA[ping -c 3 ultra.local]]></Command>
 				<Command text="Wake Marenostrum2"><![CDATA[sudo etherwake -D 00:1C:C0:60:F0:6C]]></Command>
 				<Command text="Bark"><![CDATA[play /usr/share/sounds/gnome/default/alerts/bark.ogg]]></Command>	
 				<Command text="Bark"><![CDATA[play /usr/share/sounds/gnome/default/alerts/bark.ogg]]></Command>	

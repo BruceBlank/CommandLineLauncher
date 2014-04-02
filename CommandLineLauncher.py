@@ -10,15 +10,14 @@ So, you can use the same python script with different
 soft-links to it.   
 """
 
-import sys
 import Tkinter
 # local imports
 from MyToolbox import CMyToolbox
 from ConfigFileParser import CConfigFileParser
 from CommandThread import CCommandThread
 
-#TODO: output text boxes can be shown or hidden with buttons and/or with config file entry (?)
 #TODO: resize output frame, when application window will be resized
+#TODO: group command buttons together
 
 class CCommandLineLauncher(Tkinter.Frame):
     """A class that represents the applications window"""        
@@ -95,10 +94,10 @@ class CCommandLineLauncher(Tkinter.Frame):
             self.outputWindow.grid()
             self.outputWindowVisible = True
            
-    def __init__(self, master, config):
-        Tkinter.Frame.__init__(self, master, padx=20, pady=20)
+    def __init__(self, root, config):
+        Tkinter.Frame.__init__(self, root, padx=20, pady=20)
         # define the instance variables
-        self.master = master
+        self.root = root
         self.config = config
         self.buttonwidth = self.calculateButtonWidth()
         self.commandButtons = []
@@ -108,26 +107,23 @@ class CCommandLineLauncher(Tkinter.Frame):
         self.buttonsDisabled = False
         """create the dialog and call the main loop"""
         gridwidth = self.config['GridWidth']
+        self.root.title(self.config['TitleString'])
+        self.root.resizable(0,0)
         self.pack()
         # add a title string to the top
         label = Tkinter.Label(self, text=self.config['LabelString'].decode("string_escape"))
         label.grid(row=0, columnspan=gridwidth, pady=(0, 20))
         # add the buttons for the system command
         nextrow = self.addButtons() + 1
-        # add text boxes and labels for cout and cerr of system commands 
-        label = Tkinter.Label(self, text='Standard Output')
-        label.grid(row=nextrow, column=0, columnspan=gridwidth, pady=(20, 0), sticky="NW")
-        nextrow += 1
-        self.outputWindow = Tkinter.Text(self, width=1, height=10)
+        self.outputWindow = Tkinter.Text(self, width=1, height=15)
         self.outputWindow.grid(row=nextrow, column=0, columnspan=gridwidth, pady=(20, 0), sticky="WENS")
         # show the output window?
         if(config["ShowCommandOutput"]==0):
             self.toggleOutputWindow()
         nextrow += 1
-        #TODO: maybe show a STDERR-Textbox
-        # add a close-button and center 
+        # add a close-button at left center 
         button = Tkinter.Button(self, text="Close", command=(lambda: CMyToolbox.exitProgram(0)), width=self.buttonwidth)
-        button.grid(row=nextrow, column=0, pady=(20, 0), columnspan=gridwidth)
+        button.grid(row=nextrow, column=gridwidth-1, pady=(20, 0))
         # update GUI periodically
         self.master.after(self.UpdateInterval, self.updateGUI)
 
